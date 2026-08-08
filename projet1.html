@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Générateur de Fiche PC PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --accent-main: #2563eb;
+      --accent-green: #16a34a;
+      --accent-amber: #d97706;
+      --accent-purple: #4f46e5;
+      --accent-3dmark: #ea580c;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --border-dark: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .form-container {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 800px;
+      width: 100%;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .full-width {
+      grid-column: span 2;
+    }
+
+    .photo-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.8rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 0.6rem;
+      background-color: #f8fafc;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+    }
+
+    input[type="file"] {
+      padding: 0.3rem;
+      font-size: 0.8rem;
+      background-color: transparent;
+    }
+
+    .actions-bar {
+      margin-bottom: 1.5rem;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .btn-pdf {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s;
+    }
+
+    .btn-pdf:hover {
+      transform: translateY(-2px);
+    }
+
+    /* FORMAT A4 EN PIXELS FIXES (794px x 1123px) POUR HTML2PDF PARFAIT */
+    #pdf-render-zone {
+      width: 794px;
+      height: 1123px;
+      background-color: #ffffff;
+      color: var(--text-main);
+      padding: 40px 45px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .header-section {
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+
+    .jawa-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .price-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .price-tag {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--accent-green);
+      background-color: #f0fdf4;
+      padding: 4px 16px;
+      border-radius: 6px;
+      border: 1px solid #bbf7d0;
+      display: inline-block;
+    }
+
+    /* GALERIE */
+    .jawa-gallery {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      width: 100%;
+      height: 230px;
+    }
+
+    .gallery-item {
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      background-color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gallery-item img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .main-box {
+      flex: 2;
+      height: 100%;
+    }
+
+    .sub-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+
+    .sub-box .gallery-item {
+      flex: 1;
+      height: calc(50% - 5px);
+    }
+
+    /* BODY & SPECS */
+    .jawa-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .specs-table tr {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .specs-table td {
+      padding: 6px 0;
+      font-size: 0.82rem;
+    }
+
+    .spec-label {
+      color: var(--text-muted);
+      font-weight: 600;
+      width: 40%;
+    }
+
+    .spec-value {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .badge-gpu {
+      background-color: #e0e7ff;
+      color: var(--accent-purple);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* SECTION PERFORMANCES */
+    .perf-box {
+      background-color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .perf-box h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 4px;
+    }
+
+    .perf-item {
+      margin-bottom: 8px;
+    }
+
+    .perf-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    .perf-bar-bg {
+      background-color: #e2e8f0;
+      height: 7px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .perf-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #16a34a);
+      width: 0%;
+    }
+
+    .perf-bar-fill-3dmark {
+      height: 100%;
+      background: linear-gradient(90deg, #ea580c, #f97316);
+      width: 0%;
+    }
+
+    .bench-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    .bench-table th {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-align: left;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .bench-table td {
+      font-size: 0.72rem;
+      padding: 4px 0;
+    }
+
+    .game-cat {
+      font-size: 0.62rem;
+      color: var(--accent-amber);
+      display: block;
+    }
+
+    .fps-badge {
+      font-weight: bold;
+      color: var(--accent-green);
+    }
+
+    .description-box {
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      margin-bottom: 12px;
+      flex-grow: 1;
+    }
+
+    .description-box h4 {
+      margin: 0 0 6px 0;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    .description-box p {
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: #334155;
+      margin: 0;
+      white-space: pre-line;
+    }
+
+    .pdf-footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🛠️ Créateur de Fiche PC (Export PDF A4)</h1>
+  <p class="subtitle">Thème Blanc & Gris - Téléchargement Direct en PDF</p>
+
+  <div class="form-container">
+    <div class="form-grid">
+      <div>
+        <label>Processeur (CPU) *</label>
+        <input type="text" id="in-cpu" placeholder="Ex: AMD Ryzen 5 5600X" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Carte Graphique (GPU) *</label>
+        <input type="text" id="in-gpu" placeholder="Ex: Nvidia RTX 3070 8GB" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Mémoire RAM *</label>
+        <input type="text" id="in-ram" placeholder="Ex: 16 Go DDR4 3200MHz" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Prix (€)</label>
+        <input type="text" id="in-price" placeholder="Ex: 850" oninput="updateView()">
+      </div>
+
+      <div>
+        <label>Carte Mère</label>
+        <input type="text" id="in-mb" placeholder="Ex: ASUS B550-PLUS" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Stockage</label>
+        <input type="text" id="in-ssd" placeholder="Ex: 1 To NVMe M.2" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Alimentation</label>
+        <input type="text" id="in-psu" placeholder="Ex: 650W 80+ Bronze" oninput="handleCompInput()">
+      </div>
+      <div>
+        <label>Boîtier</label>
+        <input type="text" id="in-case" placeholder="Ex: MSI Forge 100M" oninput="handleCompInput()">
+      </div>
+      <div class="full-width">
+        <label>Refroidissement</label>
+        <input type="text" id="in-cooler" placeholder="Ex: Ventirad Be Quiet! Pure Rock 2" oninput="handleCompInput()">
+      </div>
+
+      <div class="full-width">
+        <label>Titre de l'annonce</label>
+        <input type="text" id="in-title" placeholder="Ex: PC Gaming RTX 3070 / Ryzen 5600X" oninput="onUserEditTitle()">
+      </div>
+
+      <div class="full-width">
+        <label>Description du PC</label>
+        <textarea id="in-desc" rows="4" placeholder="La description se génèrera automatiquement..." oninput="onUserEditDesc()"></textarea>
+      </div>
+
+      <div>
+        <label>Score Global 1080p (%)</label>
+        <input type="number" id="in-p1080" placeholder="Auto d'après GPU" min="0" max="100" oninput="updateView()">
+      </div>
+      <div>
+        <label>Score Global 1440p (%)</label>
+        <input type="number" id="in-p1440" placeholder="Auto d'après GPU" min="0" max="100" oninput="updateView()">
+      </div>
+
+      <div class="full-width">
+        <label>Score 3DMark Time Spy (Optionnel - Ex: 13500)</label>
+        <input type="number" id="in-3dmark" placeholder="Laisser vide si inconnu (S'estime auto sinon)" oninput="updateView()">
+      </div>
+
+      <div class="full-width">
+        <label>Photos du PC</label>
+        <div class="photo-inputs">
+          <div>
+            <label>Photo 1 (Principale)</label>
+            <input type="file" accept="image/*" onchange="loadPhoto(this, 1)">
+          </div>
+          <div>
+            <label>Photo 2 (Optionnelle)</label>
+            <input type="file" accept="image/*" onchange="loadPhoto(this, 2)">
+          </div>
+          <div>
+            <label>Photo 3 (Optionnelle)</label>
+            <input type="file" accept="image/*" onchange="loadPhoto(this, 3)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions-bar">
+    <button class="btn-pdf" id="btn-export" onclick="downloadPDF()">📄 Télécharger la Fiche PDF (A4 - 1 Page)</button>
+  </div>
+
+  <div id="pdf-render-zone">
+    <div>
+      <div class="header-section">
+        <h2 class="jawa-title" id="out-title">Titre du PC</h2>
+        <div class="price-container">
+          <span class="price-tag" id="out-price">-- €</span>
+        </div>
+      </div>
+
+      <div class="jawa-gallery" id="gallery-container" style="display:none;">
+        <div class="gallery-item main-box" id="box-1" style="display:none;">
+          <img id="img-1" alt="Photo 1">
+        </div>
+        <div class="sub-box" id="sub-box" style="display:none;">
+          <div class="gallery-item" id="box-2" style="display:none;">
+            <img id="img-2" alt="Photo 2">
+          </div>
+          <div class="gallery-item" id="box-3" style="display:none;">
+            <img id="img-3" alt="Photo 3">
+          </div>
+        </div>
+      </div>
+
+      <div class="jawa-body">
+        <div>
+          <table class="specs-table">
+            <tr>
+              <td class="spec-label">Processeur</td>
+              <td class="spec-value" id="out-cpu">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Carte Graphique</td>
+              <td class="spec-value"><span class="badge-gpu" id="out-gpu">-</span></td>
+            </tr>
+            <tr>
+              <td class="spec-label">Mémoire RAM</td>
+              <td class="spec-value" id="out-ram">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Carte Mère</td>
+              <td class="spec-value" id="out-mb">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Stockage</td>
+              <td class="spec-value" id="out-ssd">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Alimentation</td>
+              <td class="spec-value" id="out-psu">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Boîtier</td>
+              <td class="spec-value" id="out-case">-</td>
+            </tr>
+            <tr>
+              <td class="spec-label">Refroidissement</td>
+              <td class="spec-value" id="out-cooler">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="perf-box">
+          <h4>⚡ Estimations & Benchmarks Gaming</h4>
+          <div class="perf-item">
+            <div class="perf-labels">
+              <span>Potentiel 1080p Ultra</span>
+              <span id="out-p1080-val">0%</span>
+            </div>
+            <div class="perf-bar-bg">
+              <div class="perf-bar-fill" id="out-p1080-bar"></div>
+            </div>
+          </div>
+          <div class="perf-item">
+            <div class="perf-labels">
+              <span>Potentiel 1440p High</span>
+              <span id="out-p1440-val">0%</span>
+            </div>
+            <div class="perf-bar-bg">
+              <div class="perf-bar-fill" id="out-p1440-bar"></div>
+            </div>
+          </div>
+
+          <div class="perf-item">
+            <div class="perf-labels">
+              <span style="color: var(--accent-3dmark);">Score 3DMark Time Spy</span>
+              <span id="out-3dmark-val" style="color: var(--accent-3dmark);">0 pts</span>
+            </div>
+            <div class="perf-bar-bg">
+              <div class="perf-bar-fill-3dmark" id="out-3dmark-bar"></div>
+            </div>
+          </div>
+
+          <table class="bench-table">
+            <thead>
+              <tr>
+                <th>Jeu / Catégorie</th>
+                <th style="text-align: right;">1080p</th>
+                <th style="text-align: right;">1440p</th>
+              </tr>
+            </thead>
+            <tbody id="bench-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="description-box">
+        <h4>📝 Description & Détails</h4>
+        <p id="out-desc">Remplissez le formulaire pour afficher la description...</p>
+      </div>
+    </div>
+
+    <div class="pdf-footer">
+      <span>Document généré le : <span id="out-date"></span></span>
+      <span>Fiche PC - Format A4</span>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('out-date').innerText = new Date().toLocaleDateString('fr-FR');
+
+    const photoState = { 1: false, 2: false, 3: false };
+    let userHasEditedTitle = false;
+    let userHasEditedDesc = false;
+
+    function estimateGpuPower(gpuName) {
+      const g = gpuName.toLowerCase();
+      let power = 50;
+
+      if (g.includes('4090') || g.includes('7900 xtx')) power = 100;
+      else if (g.includes('4080') || g.includes('7900 xt')) power = 92;
+      else if (g.includes('4070 ti') || g.includes('3090') || g.includes('6950')) power = 85;
+      else if (g.includes('4070') || g.includes('3080') || g.includes('7800 xt')) power = 78;
+      else if (g.includes('4060 ti') || g.includes('3070 ti') || g.includes('3070') || g.includes('6750') || g.includes('6700 xt')) power = 70;
+      else if (g.includes('4060') || g.includes('3060 ti') || g.includes('6650') || g.includes('7600') || g.includes('5060')) power = 62;
+      else if (g.includes('3060') || g.includes('2070') || g.includes('6600 xt') || g.includes('5700 xt')) power = 54;
+      else if (g.includes('2060') || g.includes('1080') || g.includes('6600') || g.includes('gtx 1660 ti')) power = 46;
+      else if (g.includes('1660 super') || g.includes('1660') || g.includes('1070') || g.includes('rx 580')) power = 38;
+      else if (g.includes('1650') || g.includes('1060') || g.includes('1050')) power = 28;
+
+      return power;
+    }
+
+    function onUserEditTitle() { userHasEditedTitle = true; updateView(); }
+    function onUserEditDesc() { userHasEditedDesc = true; updateView(); }
+
+    function handleCompInput() {
+      const cpu = document.getElementById('in-cpu').value.trim();
+      const gpu = document.getElementById('in-gpu').value.trim();
+      const ram = document.getElementById('in-ram').value.trim();
+
+      if (cpu !== '' && gpu !== '' && ram !== '') {
+        autoGenerateTitleAndDesc(cpu, gpu, ram);
+      }
+      updateView();
+    }
+
+    function autoGenerateTitleAndDesc(cpu, gpu, ram) {
+      const mb = document.getElementById('in-mb').value.trim();
+      const ssd = document.getElementById('in-ssd').value.trim();
+      const psu = document.getElementById('in-psu').value.trim();
+      const pcCase = document.getElementById('in-case').value.trim();
+      const cooler = document.getElementById('in-cooler').value.trim();
+
+      if (!userHasEditedTitle) {
+        document.getElementById('in-title').value = `PC Gaming ${gpu} / ${cpu} - ${ram}`;
+      }
+
+      if (!userHasEditedDesc) {
+        let descLines = [
+          `🔥 Configuration PC Gaming haute performance prête à l'emploi.`,
+          `Monté et testé avec soin. Idéal pour le jeu vidéo exigeant, le streaming et la création.`,
+          ``,
+          `🛠️ DÉTAILS DE LA CONFIGURATION :`,
+          `• Processeur : ${cpu}`,
+          `• Carte Graphique : ${gpu}`,
+          `• Mémoire RAM : ${ram}`
+        ];
+
+        if (mb) descLines.push(`• Carte Mère : ${mb}`);
+        if (ssd) descLines.push(`• Stockage : ${ssd}`);
+        if (cooler) descLines.push(`• Refroidissement : ${cooler}`);
+        if (psu) descLines.push(`• Alimentation : ${psu}`);
+        if (pcCase) descLines.push(`• Boîtier : ${pcCase}`);
+
+        descLines.push(``);
+        descLines.push(`✨ Système prêt à l'emploi avec Windows installé et optimisé.`);
+
+        document.getElementById('in-desc').value = descLines.join('\n');
+      }
+    }
+
+    function updateView() {
+      const gpuVal = document.getElementById('in-gpu').value || '';
+      
+      document.getElementById('out-title').innerText = document.getElementById('in-title').value || 'Titre du PC';
+      document.getElementById('out-price').innerText = document.getElementById('in-price').value ? document.getElementById('in-price').value + ' €' : '-- €';
+      document.getElementById('out-cpu').innerText = document.getElementById('in-cpu').value || '-';
+      document.getElementById('out-gpu').innerText = gpuVal || '-';
+      document.getElementById('out-ram').innerText = document.getElementById('in-ram').value || '-';
+      document.getElementById('out-mb').innerText = document.getElementById('in-mb').value || '-';
+      document.getElementById('out-ssd').innerText = document.getElementById('in-ssd').value || '-';
+      document.getElementById('out-psu').innerText = document.getElementById('in-psu').value || '-';
+      document.getElementById('out-case').innerText = document.getElementById('in-case').value || '-';
+      document.getElementById('out-cooler').innerText = document.getElementById('in-cooler').value || '-';
+      document.getElementById('out-desc').innerText = document.getElementById('in-desc').value || 'Aucune description fournie.';
+
+      const gpuPower = estimateGpuPower(gpuVal);
+
+      const manual1080 = document.getElementById('in-p1080').value;
+      const manual1440 = document.getElementById('in-p1440').value;
+
+      const p1080 = manual1080 !== '' ? parseInt(manual1080) : Math.min(100, Math.round(gpuPower * 1.15));
+      const p1440 = manual1440 !== '' ? parseInt(manual1440) : Math.min(100, Math.round(gpuPower * 0.9));
+
+      document.getElementById('out-p1080-val').innerText = p1080 + '%';
+      document.getElementById('out-p1080-bar').style.width = p1080 + '%';
+      document.getElementById('out-p1440-val').innerText = p1440 + '%';
+      document.getElementById('out-p1440-bar').style.width = p1440 + '%';
+
+      const manual3dmark = document.getElementById('in-3dmark').value;
+      const timeSpyScore = manual3dmark !== '' ? parseInt(manual3dmark) : Math.round(gpuPower * 210);
+      const timeSpyMax = 25000;
+      const timeSpyPercent = Math.min(100, Math.round((timeSpyScore / timeSpyMax) * 100));
+
+      document.getElementById('out-3dmark-val').innerText = timeSpyScore.toLocaleString('fr-FR') + ' pts';
+      document.getElementById('out-3dmark-bar').style.width = timeSpyPercent + '%';
+
+      updateBenchmarks(gpuPower);
+    }
+
+    function updateBenchmarks(power) {
+      const games = [
+        { name: "Valorant / CS2", cat: "Esport / Compétitif", mult1080: 3.8, mult1440: 3.0 },
+        { name: "Apex / Fortnite", cat: "Battle Royale / FPS", mult1080: 2.2, mult1440: 1.6 },
+        { name: "Cyberpunk 2077", cat: "AAA Ultra / Ray Tracing", mult1080: 1.0, mult1440: 0.75 },
+        { name: "GTA V / Red Dead 2", cat: "Monde Ouvert / Action", mult1080: 1.6, mult1440: 1.2 },
+        { name: "Flight Simulator", cat: "Simulation / Stratégie", mult1080: 0.9, mult1440: 0.65 }
+      ];
+
+      const benchList = document.getElementById('bench-list');
+      benchList.innerHTML = '';
+
+      games.forEach(g => {
+        const fps1080 = Math.round(power * g.mult1080);
+        const fps1440 = Math.round(power * g.mult1440);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <strong>${g.name}</strong>
+            <span class="game-cat">${g.cat}</span>
+          </td>
+          <td style="text-align: right;"><span class="fps-badge">${fps1080} FPS</span></td>
+          <td style="text-align: right;"><span class="fps-badge">${fps1440} FPS</span></td>
+        `;
+        benchList.appendChild(tr);
+      });
+    }
+
+    function loadPhoto(input, index) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById(`img-${index}`).src = e.target.result;
+          photoState[index] = true;
+          adjustGalleryLayout();
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function adjustGalleryLayout() {
+      const box1 = document.getElementById('box-1');
+      const box2 = document.getElementById('box-2');
+      const box3 = document.getElementById('box-3');
+      const subBox = document.getElementById('sub-box');
+      const gallery = document.getElementById('gallery-container');
+
+      box1.style.display = photoState[1] ? 'flex' : 'none';
+      box2.style.display = photoState[2] ? 'flex' : 'none';
+      box3.style.display = photoState[3] ? 'flex' : 'none';
+
+      if (photoState[2] || photoState[3]) {
+        subBox.style.display = 'flex';
+      } else {
+        subBox.style.display = 'none';
+      }
+
+      if (!photoState[1] && !photoState[2] && !photoState[3]) {
+        gallery.style.display = 'none';
+      } else {
+        gallery.style.display = 'flex';
+      }
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('pdf-render-zone');
+      const title = document.getElementById('in-title').value || 'Fiche_PC';
+      const btn = document.getElementById('btn-export');
+
+      btn.innerText = "⏳ Génération du PDF...";
+      btn.style.opacity = "0.7";
+
+      const opt = {
+        margin:       0,
+        filename:     `${title.replace(/[^a-zA-Z0-9]/g, '_')}_A4.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerText = "📄 Télécharger la Fiche PDF (A4 - 1 Page)";
+        btn.style.opacity = "1";
+      }).catch(err => {
+        console.error(err);
+        btn.innerText = "📄 Télécharger la Fiche PDF (A4 - 1 Page)";
+        btn.style.opacity = "1";
+      });
+    }
+
+    updateView();
+  </script>
+</body>
+</html>
